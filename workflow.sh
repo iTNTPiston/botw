@@ -46,6 +46,7 @@ FLAG_MANGLE_NO_INTERACTION='-f'
 FLAG_DIFF_SOURCE='-v'
 # Only used in file sync
 FLAG_WRITE_BACK='-w'
+FLAG_REVERSE='-r'
 
 #Helpers
 print_info(){
@@ -128,7 +129,12 @@ check_status(){
 
 case $func in
 sync|s )
-    do_sync;;
+    if has_option $FLAG_REVERSE
+    then
+        do_sync -r
+    else
+        do_sync
+    fi;;
 build|b )
     do_sync && do_build;;
 mangle|m )
@@ -225,6 +231,7 @@ check|c )
     if [[ ${FILE_SYNC} == "ON" ]]
     then
     echo "s|sync                 Sync the directory"
+    echo "         [-r]            in reverse direction"
     fi
     echo "b|build                Build"
     echo "m|mangle <search>      Search for the mangled name of a function and update uking_functions.csv"
