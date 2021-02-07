@@ -23,6 +23,8 @@ WORKING_FILES=../file-list.txt
 UKING_FUNCTIONS=data/uking_functions.csv    
 #Path to temporarily put the output of tools/print_decomp_symbols.py
 SYMBOL_OUT=build/symbols.txt                
+#Path to temporarily output the list of files
+FILES_OUT=build/file-sync.txt
 #Path to diff.py
 DIFF_PY=./diff.py
 #Path to print_decomp_symbols.py
@@ -47,6 +49,8 @@ FLAG_DIFF_SOURCE='-v'
 # Only used in file sync
 FLAG_WRITE_BACK='-w'
 FLAG_REVERSE='-r'
+FLAG_ALL='-a'
+FLAG_CLEAN='-c'
 
 #Helpers
 print_info(){
@@ -97,7 +101,30 @@ do_sync(){
     if [[ ${FILE_SYNC} == "ON" ]]
     then
         print_info "Syncing"
-        $FILE_SYNC_PY -l $WORKING_FILES $1
+        do_clean=
+        if has_option $FLAG_CLEAN
+        then
+            do_clean='-c'
+            read -p "$(print_prompt "-c is specified in sync. This will remove old files before copying. Enter y to continue. ")" yn
+            case $yn in
+                [Yy]* ) print_info "Clean mode is on in sync";;
+                *) print_error "canceled"; exit;;
+            esac
+        fi
+        if has_option $FLAG_ALL
+        then
+            read -p "$(print_prompt "-a is specified in sync. This will sync all lib/ and src/. Enter y to continue. ")" yn
+            case $yn in
+                [Yy]* ) print_info "Syncing all files";;
+                *) print_error "canceled"; exit;;
+            esac
+            find src -name "*" -type f > $FILES_OUT
+            $FILE_SYNC_PY $do_clean -l $FILES_OUT $1
+            find lib -name "*" -type f > $FILES_OUT
+            $FILE_SYNC_PY $do_clean -l $FILES_OUT $1
+        else
+            $FILE_SYNC_PY $do_clean -v -l $WORKING_FILES $1
+        fi
     fi
 }
 do_build(){
@@ -232,6 +259,8 @@ check|c )
     then
     echo "s|sync                 Sync the directory"
     echo "         [-r]            in reverse direction"
+    echo "         [-a]            sync all lib and src"
+    echo "         [-c]            clean mode, remove old files and copy"
     fi
     echo "b|build                Build"
     echo "m|mangle <search>      Search for the mangled name of a function and update uking_functions.csv"
@@ -242,6 +271,8 @@ check|c )
     if [[ ${FILE_SYNC} == "ON" ]]
     then
     echo "         [-w]            sync formatted code"
+    echo "         [-a]            sync all lib and src"
+    echo "         [-c]            clean mode, remove old files and copy"
     fi
     echo " |mad    <search>      Mangle and diff. Search for the mangled name of a function and diff it"
     echo "         [-v]            verbose, show source when diffing"
